@@ -9,11 +9,9 @@ template <typename T>
 using TrueUnsign = std::is_unsigned<TrueT<T>>;
 
 template <typename T>
-using TrueSign = std::is_unsigned<TrueT<T>>;
-// using TrueInteg =
+using TrueSign = std::is_signed<TrueT<T>>;
 
 enum class DataProperties {
-    IsSorted, // Data is sorted
     NoGaps, // Data has no gaps (i.e. 1,2,3 not 1,3,4)
     StartsFromZero, // Data starts from zero
     NonNegative, // Data doesn't contain negative numbers
@@ -28,11 +26,10 @@ struct LinearDataPropertyStorage {
     IdxT max;
 };
 
-
 template<typename KeyT, typename ValueT>
 static constexpr bool keys_non_neg(const std::initializer_list<std::pair<KeyT,ValueT>> &values) {
     /* If type is unsigned - then guaranteed to be non-neg */
-    if constexpr (std::is_unsigned_v<KeyT> == true) {
+    if constexpr (TrueUnsign<KeyT>::value == true) {
         return true;
     } else {
         /* Actual implementation ig */
@@ -58,9 +55,31 @@ static constexpr bool keys_no_gaps(const std::initializer_list<std::pair<KeyT,Va
 }
 
 template<typename KeyT, typename ValueT>
+static constexpr bool keys_starts_from_zero(const std::initializer_list<std::pair<KeyT,ValueT>> &values) {
+    if constexpr (TrueUnsign<KeyT>::value == true) {
+        for (const auto& val : values) {
+            if (val == 0) {
+                return true;
+            }
+        }
+    } else {
+        bool found_zero = false;
+        for (const auto& val : values) {
+            if (val < 0) {
+                return false;
+            }
+            if (val == 0) {
+                found_zero = true;
+            }
+            return found_zero;
+        }
+    }
+    return false;
+}
+
+template<typename KeyT, typename ValueT>
 static constexpr bool keys_require_large(const std::initializer_list<std::pair<KeyT,ValueT>> &values) {
     /* If type is unsigned - then guaranteed to be non-neg */
-    using TrueT = std::underlying_type_t<KeyT>;
     if constexpr (std::is_enum_v<KeyT>) {
       /* Actual implementation ig */
         for (const auto &val : values) {
@@ -74,6 +93,14 @@ static constexpr bool keys_require_large(const std::initializer_list<std::pair<K
         return true;
     }
 }
+
+/* TODO: Ensure that CountT is number type, EdgeT - must have 'comparison' operator & 'distance' operator */
+template <typename CountT, typename EdgeT>
+struct DataPropertyStorage {
+    CountT count;
+    EdgeT min;
+    EdgeT max;
+};
 
 // struct DataPropertyStorageNonNeg {
 //     uint32_t count;
