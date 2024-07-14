@@ -1,0 +1,7 @@
+Hover:
+  ShowAKA: Yes
+Diagnostics:
+  UnusedIncludes: Strict
+  ClangTidy:
+    Add: ['bugprone-*', 'modernize-*', 'performance-*', 'concurrency-*', 'clang-analyzer-*', 'readability-*', 'portability-*']
+    Remove: ['modernize-use-trailing-return-type', 'modernize-use-nodiscard']
