@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "__config": "cpp",
+        "unordered_map": "cpp",
+        "map": "cpp"
+    },
+    "clangd.arguments": [
+        "--background-index",
+        "--header-insertion=never",
+    ]
+}
