@@ -261,4 +261,15 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
                                                  Size, offset_from_zero);
     }
 };
+
+template <typename T, typename U, std::size_t N>
+static consteval auto make_linear_map(std::pair<T, U> const (&items)[N]) {
+    return linear_map<T, U, N>{items};
+}
+
+template <typename T, typename U, std::size_t N>
+static consteval auto
+make_linear_map(std::array<std::pair<T, U>, N> const &items) {
+    return linear_map<T, U, N>{items};
+}
 }; // namespace heurohash
