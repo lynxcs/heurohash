@@ -3,18 +3,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(heurohash)
 
+option(HEUROHASH_ENABLE_TESTING "Enable tests" OFF)
+option(HEUROHASH_ENABLE_BENCHES "Enable benchmarks" OFF)
+
 add_library(heurohash INTERFACE)
 
-target_sources(heurohash INTERFACE
-    heurohash_direct.hpp
-    heurohash_hashfunc.hpp
-    heurohash_linear.hpp
-    heurohash_map.hpp
-    heurohash_properties.hpp
-)
+target_include_directories(heurohash INTERFACE include/)
+target_compile_features(heurohash INTERFACE cxx_std_20)
 
-add_executable(test_client main.cpp)
-target_link_libraries(test_client PRIVATE heurohash)
-
-target_compile_features(heurohash INTERFACE cxx_std_17)
-set_property(TARGET test_client PROPERTY CXX_STANDARD 17)
+if (HEUROHASH_ENABLE_BENCHES)
+    add_subdirectory(benchmarks)
+endif()
