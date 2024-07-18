@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
+#include <type_traits>
 #include <utility>
 
 #include "detail/traits.hpp"
@@ -41,8 +43,8 @@ class ordered_map_keyset {
     using KeyValT = std::remove_cv_t<KeyStorT>;
     using KeyStorageT = std::array<KeyValT, Size>;
 
-    [[no_unique_address]] Compare compare;
     KeyStorageT keys{};
+    [[no_unique_address]] Compare compare;
 
   public:
     static constexpr size_t keyset_size = Size;
@@ -141,6 +143,127 @@ class ordered_map_keyset {
     }
 };
 
+template <typename KeyT, typename ValueT>
+class ordered_map_iterator {
+    std::pair<const KeyT*, ValueT*> pair;
+
+  public:
+    using iterator_category = std::random_access_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = std::pair<const KeyT*, ValueT*>;
+    using pointer           = const value_type*;
+    using const_pointer     = const value_type*;
+    using reference         = value_type&;
+    // using const_reference   = const value_type&;
+
+    constexpr ordered_map_iterator(const KeyT *key_ptr,
+                                   ValueT *value_ptr) noexcept
+        : pair(key_ptr, value_ptr) {}
+
+    constexpr ordered_map_iterator() noexcept
+        : pair(nullptr, nullptr) {}
+
+    constexpr ordered_map_iterator(const ordered_map_iterator& other) noexcept = default;
+    constexpr ordered_map_iterator& operator=(const ordered_map_iterator& other) noexcept = default;
+
+    constexpr ordered_map_iterator(ordered_map_iterator&& other) noexcept = default;
+    constexpr ordered_map_iterator& operator=(ordered_map_iterator&& other) noexcept = default;
+
+    constexpr operator ordered_map_iterator<KeyT, const ValueT>() const noexcept {
+        return ordered_map_iterator<KeyT, const ValueT>{pair.first, pair.second};
+    }
+
+    constexpr ordered_map_iterator &operator++() noexcept {
+        ++pair.first;
+        ++pair.second;
+        return *this;
+    }
+
+    constexpr ordered_map_iterator operator++(int) noexcept {
+        ordered_map_iterator tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    constexpr ordered_map_iterator& operator--() noexcept {
+        --pair.first;
+        --pair.second;
+        return *this;
+    }
+
+    constexpr ordered_map_iterator operator--(int) noexcept {
+        ordered_map_iterator tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    constexpr ordered_map_iterator& operator+=(difference_type n) noexcept {
+        pair.first += n;
+        pair.second += n;
+        return *this;
+    }
+
+    constexpr ordered_map_iterator& operator-=(difference_type n) noexcept {
+        pair.first -= n;
+        pair.second -= n;
+        return *this;
+    }
+
+    constexpr ordered_map_iterator operator+(difference_type n) noexcept {
+        return ordered_map_iterator(pair.first + n, pair.second + n);
+    }
+
+    friend constexpr ordered_map_iterator operator+(difference_type n, const ordered_map_iterator &it) noexcept {
+        return ordered_map_iterator(it.pair.first + n, it.pair.second + n);
+    }
+
+    constexpr ordered_map_iterator<KeyT, std::remove_const_t<ValueT>> operator+(difference_type n) const noexcept {
+        return ordered_map_iterator<KeyT, std::remove_const_t<ValueT>>(pair.first + n, pair.second + n);
+    }
+
+    constexpr ordered_map_iterator operator-(difference_type n) const noexcept {
+        return ordered_map_iterator(pair.first - n, pair.second - n);
+    }
+
+    friend constexpr ordered_map_iterator operator-(difference_type n, const ordered_map_iterator &it) noexcept {
+        return ordered_map_iterator(it.pair.first - n, it.pair.second - n);
+    }
+
+    constexpr difference_type operator-(const ordered_map_iterator& other) const noexcept {
+        return pair.first - other.pair.first;
+    }
+
+    constexpr auto operator<=>(const ordered_map_iterator& other) const noexcept {
+        return pair.first <=> other.pair.first;
+    }
+
+    constexpr bool
+    operator==(const ordered_map_iterator &other) const noexcept {
+        return pair.first == other.pair.first && pair.second == other.pair.second;
+    }
+
+    constexpr bool
+    operator==(const ValueT *other_val_ptr) const noexcept {
+        return pair.second == other_val_ptr;
+    }
+
+    constexpr reference operator*() const noexcept {
+        return pair;
+    }
+
+    constexpr pointer operator->() const noexcept {
+        return &pair;
+    }
+
+    constexpr reference operator[](difference_type n) const noexcept {
+        return {pair.first + n, pair.second + n};
+    }
+};
+
+static_assert(std::random_access_iterator<ordered_map_iterator<int, void*>>,
+                "ordered_map_iterator must be a random access iterator");
+
+
 /* FWD declare ordered_map for span friend */
 template <typename KeyT, typename ValueT, size_t Size, typename KeyStorT,
           typename Compare>
@@ -151,10 +274,10 @@ template <typename KeyT, typename ValueT,
           typename KeyStorT = detail::underlying_type<KeyT>,
           typename Compare = std::less<KeyStorT>>
 class ordered_map_span {
-    [[no_unique_address]] Compare compare;
     const KeyStorT *key_storage;
     ValueT *value_storage;
     size_t stor_size;
+    [[no_unique_address]] Compare compare;
 
   public:
     /* Member types */
@@ -167,8 +290,7 @@ class ordered_map_span {
     using const_reference = const value_type &;
     using pointer = value_type *;
     using const_pointer = const value_type *;
-    using iterator = pointer;
-    using const_iterator = const_pointer;
+    using iterator = ordered_map_iterator<KeyT, ValueT>;
 
   protected:
     template <typename Key, typename Value, size_t Size, typename KeyStor,
@@ -189,8 +311,14 @@ class ordered_map_span {
     constexpr ordered_map_span &
     operator=(ordered_map_span &&) noexcept = default;
 
+    constexpr operator ordered_map_span<KeyT, const ValueT, KeyStorT, Compare>()
+        const noexcept {
+        return ordered_map_span<KeyT, const ValueT, KeyStorT, Compare>(
+            key_storage, value_storage, stor_size, compare);
+    }
+
     /* Lookup */
-    constexpr iterator find(const KeyT &key) const noexcept {
+    constexpr ValueT* find(const KeyT &key) const noexcept {
         return value_storage + find_impl(key);
     }
 
@@ -218,10 +346,10 @@ class ordered_map_span {
 
     constexpr size_t max_size() const noexcept { return stor_size; }
 
-    constexpr iterator begin() const noexcept { return value_storage; }
+    constexpr iterator begin() const noexcept { return iterator{key_storage, value_storage}; }
 
     constexpr iterator end() const noexcept {
-        return value_storage + stor_size;
+        return iterator{key_storage + stor_size, value_storage + stor_size};
     }
 
     constexpr void clear() noexcept {
@@ -254,8 +382,8 @@ class ordered_map {
     using const_reference = const value_type &;
     using pointer = value_type *;
     using const_pointer = const value_type *;
-    using iterator = typename StorageT::iterator;
-    using const_iterator = typename StorageT::const_iterator;
+    using iterator = ordered_map_iterator<KeyT, ValueT>;
+    using const_iterator = ordered_map_iterator<KeyT, const ValueT>;
 
     template <typename InputIt>
     static constexpr std::array<KeyT, Size> extract_keys(InputIt first,
@@ -311,12 +439,14 @@ class ordered_map {
     constexpr ordered_map(ordered_map &&) noexcept = default;
     constexpr ordered_map &operator=(ordered_map &&) noexcept = default;
 
-    constexpr iterator find(const key_type &key) noexcept {
+    /* Find returns a different type of iterator than begin()/end(), however,
+     * value ptr can still be compared with end(). */
+    constexpr ValueT* find(const key_type &key) noexcept {
         return values.begin() + keyset.find(key);
     }
 
-    constexpr const_iterator find(const key_type &key) const noexcept {
-        return values.begin() + keyset.find(key);
+    constexpr const ValueT* find(const key_type &key) const noexcept {
+        return values.cbegin() + keyset.find(key);
     }
 
     constexpr ValueT &operator[](const KeyT &key) noexcept {
@@ -355,17 +485,17 @@ class ordered_map {
     constexpr size_t max_size() const noexcept { return Size; }
 
     /* Iterators */
-    constexpr iterator begin() noexcept { return values.begin(); }
+    constexpr iterator begin() noexcept {
+        return iterator{keyset.begin(), values.begin()};
+    }
 
-    constexpr const_iterator begin() const noexcept { return values.begin(); }
+    constexpr const_iterator begin() const noexcept {
+        return const_iterator{keyset.begin(), values.cbegin()};
+    }
 
-    constexpr iterator end() noexcept { return values.end(); }
+    constexpr iterator end() noexcept {return iterator{keyset.end(), values.end()}; }
 
-    constexpr const_iterator end() const noexcept { return values.end(); }
-
-    constexpr const_iterator cbegin() const noexcept { return values.cbegin(); }
-
-    constexpr const_iterator cend() const noexcept { return values.cend(); }
+    constexpr const_iterator end() const noexcept {return const_iterator{keyset.end(), values.cend()}; }
 
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 
@@ -404,8 +534,8 @@ class ordered_map_valueset {
     using const_reference = const value_type &;
     using pointer = value_type *;
     using const_pointer = const value_type *;
-    using iterator = typename StorageT::iterator;
-    using const_iterator = typename StorageT::const_iterator;
+    using iterator = ordered_map_iterator<KeyT, ValueT>;
+    using const_iterator = ordered_map_iterator<KeyT, const ValueT>;
 
     template <typename InputIt>
     static constexpr std::array<KeyT, Size> extract_keys(InputIt first,
@@ -454,12 +584,12 @@ class ordered_map_valueset {
     constexpr ordered_map_valueset(ordered_map_valueset &&) noexcept = default;
     constexpr ordered_map_valueset &operator=(ordered_map_valueset &&) noexcept = default;
 
-    constexpr iterator find(const key_type &key) noexcept {
+    constexpr ValueT* find(const key_type &key) noexcept {
         return values.begin() + keyset.find(key);
     }
 
-    constexpr const_iterator find(const key_type &key) const noexcept {
-        return values.begin() + keyset.find(key);
+    constexpr const ValueT* find(const key_type &key) const noexcept {
+        return values.cbegin() + keyset.find(key);
     }
 
     constexpr ValueT &operator[](const KeyT &key) noexcept {
@@ -498,17 +628,18 @@ class ordered_map_valueset {
     constexpr size_t max_size() const noexcept { return Size; }
 
     /* Iterators */
-    constexpr iterator begin() noexcept { return values.begin(); }
+    constexpr iterator begin() noexcept {
+        return iterator{keyset.begin(), values.begin()};
+    }
 
-    constexpr const_iterator begin() const noexcept { return values.begin(); }
+    constexpr const_iterator begin() const noexcept {
+        return iterator{keyset.begin(), values.cbegin()};
+    }
 
-    constexpr iterator end() noexcept { return values.end(); }
+    constexpr iterator end() noexcept {return iterator{keyset.end(), values.end()}; }
 
-    constexpr const_iterator end() const noexcept { return values.end(); }
+    constexpr const_iterator end() const noexcept {return iterator{keyset.end(), values.cend()}; }
 
-    constexpr const_iterator cbegin() const noexcept { return values.cbegin(); }
-
-    constexpr const_iterator cend() const noexcept { return values.cend(); }
 
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 

@@ -7,6 +7,11 @@ static constexpr auto arrlookup = std::array<int, 8>{{50, 10, 123, 53498, 1230, 
 
 static constexpr auto created_map_find = heurohash::make_ordered_map<int, int, 8>(arr);
 
+static_assert(created_map_find.find(50) != created_map_find.end());
+static_assert(created_map_find.begin() != created_map_find.end());
+static_assert(*created_map_find.begin()->first == 10);
+static_assert(*created_map_find.begin()->second == 40);
+
 static void MapCreation(benchmark::State& state) {
   // Code inside this loop is measured repeatedly
   for (auto _ : state) {
