@@ -152,9 +152,9 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
         : linear_map(key_items.begin(), key_items.end()) {}
 
     consteval linear_map(const pair_type (&kvp_items)[Size]) noexcept
-        : linear_map(kvp_items.begin(), kvp_items.end()) {}
+        : linear_map(std::begin(kvp_items), std::end(kvp_items)) {}
     consteval linear_map(const key_type (&key_items)[Size]) noexcept
-        : linear_map(key_items.begin(), key_items.end()) {}
+        : linear_map(std::begin(key_items), std::end(key_items)) {}
 
     /* Copying can take place at run-time*/
     constexpr linear_map(const linear_map &) noexcept = default;
@@ -253,6 +253,7 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
             std::adjacent_find(prereq_arr.cbegin(), prereq_arr.cend());
         constexpr_assert(adjacent_val == prereq_arr.cend(),
                          "Duplicate entries in keys");
+        constexpr_assert(prereq_arr.back() - prereq_arr.front() == Size - 1, "Keys must be contiguous");
         return prereq_arr.front();
     }
 
