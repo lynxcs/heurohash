@@ -12,6 +12,18 @@ static_assert(created_map_find.begin() != created_map_find.end());
 static_assert(*created_map_find.begin()->first == 10);
 static_assert(*created_map_find.begin()->second == 40);
 
+
+static constexpr bool check_thing() {
+  for (auto &[key, value] : created_map_find) {
+    if (*key == 50 && *value == 20) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static_assert(check_thing());
+
 static void MapCreation(benchmark::State& state) {
   // Code inside this loop is measured repeatedly
   for (auto _ : state) {

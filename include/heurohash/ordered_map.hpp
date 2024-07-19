@@ -247,8 +247,16 @@ class ordered_map_iterator {
         return pair.second == other_val_ptr;
     }
 
+    constexpr reference operator*() noexcept {
+        return pair;
+    }
+
     constexpr reference operator*() const noexcept {
         return pair;
+    }
+
+    constexpr pointer operator->() noexcept {
+        return &pair;
     }
 
     constexpr pointer operator->() const noexcept {
