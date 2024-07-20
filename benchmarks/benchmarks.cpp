@@ -9,20 +9,41 @@ static constexpr auto created_map_find = heurohash::make_ordered_map<int, int, 8
 
 static_assert(created_map_find.find(50) != created_map_find.end());
 static_assert(created_map_find.begin() != created_map_find.end());
-static_assert(*created_map_find.begin()->first == 10);
-static_assert(*created_map_find.begin()->second == 40);
-
+// static_assert((created_map_find.begin())->first == 10);
+static_assert((*created_map_find.begin()).second == 40);
 
 static constexpr bool check_thing() {
-  for (auto &[key, value] : created_map_find) {
-    if (*key == 50 && *value == 20) {
-      return true;
+  for (auto [key, value] : created_map_find) {
+    if (key == 50 && value == 20) {
     }
   }
-  return false;
+  for (const auto &[key, value] : created_map_find) {
+    if (key == 50 && value == 20) {
+    }
+  }
+  for (const auto &kvp : created_map_find) {
+    if (kvp.first == 50 && kvp.second == 20) {
+    }
+  }
+  for (auto kvp : created_map_find) {
+    if (kvp.first == 50 && kvp.second == 20) {
+    }
+  }
+  auto do_thing_non_const = heurohash::make_ordered_map<int, int, 8>(arr);
+  for (auto kvp : do_thing_non_const) {
+    kvp.second = 50;
+  }
+  return true;
 }
 
 static_assert(check_thing());
+
+// static_assert(created_map_find.begin()[0].first == 10);
+
+enum class EE {
+  A, B
+};
+static constexpr auto cr_map_2 = heurohash::make_ordered_map<EE, int, 2>({{EE::A, 1}, {EE::B, 2}});
 
 static void MapCreation(benchmark::State& state) {
   // Code inside this loop is measured repeatedly
@@ -118,5 +139,59 @@ static void OrdMapLookupConstexpr(benchmark::State& state) {
   }
 }
 BENCHMARK(OrdMapLookupConstexpr);
+
+static void MapIterOverBinding(benchmark::State& state) {
+  // Code before the loop is not measured
+  std::map<int, int> created_map(arr.begin(), arr.end());
+  for (auto _ : state) {
+    for (const auto &[key, value] : created_map) {
+      benchmark::DoNotOptimize(key);
+      benchmark::DoNotOptimize(value);
+    }
+  }
+}
+BENCHMARK(MapIterOverBinding);
+
+static void OrdMapIterOverBinding(benchmark::State& state) {
+  // Code before the loop is not measured
+  auto created_map = heurohash::make_ordered_map<int, int, 8>(arr);
+  for (auto _ : state) {
+    for (const auto &[key, value] : created_map) {
+      benchmark::DoNotOptimize(key);
+      benchmark::DoNotOptimize(value);
+    }
+  }
+}
+BENCHMARK(OrdMapIterOverBinding);
+
+static void MapIterOver(benchmark::State& state) {
+  // Code before the loop is not measured
+  std::map<int, int> created_map(arr.begin(), arr.end());
+  auto it = created_map.begin();
+  for (auto _ : state) {
+    if (it != created_map.end()) {
+      ++it;
+    } else {
+      it = created_map.begin();
+    }
+    benchmark::DoNotOptimize(it);
+  }
+}
+BENCHMARK(MapIterOver);
+
+static void OrdMapIterOver(benchmark::State& state) {
+  // Code before the loop is not measured
+  auto created_map = heurohash::make_ordered_map<int, int, 8>(arr);
+  auto it = created_map.begin();
+  for (auto _ : state) {
+    if (it != created_map.end()) {
+      ++it;
+    } else {
+      it = created_map.begin();
+    }
+    benchmark::DoNotOptimize(it);
+  }
+}
+BENCHMARK(OrdMapIterOver);
 
 BENCHMARK_MAIN();
