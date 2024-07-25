@@ -170,6 +170,8 @@ static void MapIterOver(benchmark::State& state) {
   auto it = created_map.begin();
   for (auto _ : state) {
     if (it != created_map.end()) {
+      auto val = it->second;
+      benchmark::DoNotOptimize(val);
       ++it;
     } else {
       it = created_map.begin();
@@ -185,6 +187,8 @@ static void OrdMapIterOver(benchmark::State& state) {
   auto it = created_map.begin();
   for (auto _ : state) {
     if (it != created_map.end()) {
+      auto val = it->second;
+      benchmark::DoNotOptimize(val);
       ++it;
     } else {
       it = created_map.begin();

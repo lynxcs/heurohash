@@ -1,9 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <functional>
-#include <utility>
-
 #include "detail/traits.hpp"
 
 #include "ordered_map_keyset.hpp"
@@ -11,17 +7,19 @@
 #include "ordered_map_span.hpp"
 
 namespace heurohash {
-
 template <typename KeyT, typename ValueT, size_t Size,
           typename KeyStorT = detail::underlying_type<KeyT>,
           typename Compare = std::less<KeyStorT>>
-class ordered_map {
+class ordered_map_valueset {
     using StorageT = std::array<ValueT, Size>;
-    ordered_map_keyset<KeyT, Size, KeyStorT, Compare> keyset;
+    using KeysetT = ordered_map_keyset<KeyT, Size, KeyStorT, Compare>;
+    /* FIXME: Move ordered_map & ordered_map_valueset into a common class where
+     * KeysetT can be controlled */
+    const KeysetT &keyset;
     StorageT values{};
 
   public:
-    using key_type = typename decltype(keyset)::key_type;
+    using key_type = KeyT;
     using mapped_type = ValueT;
     using value_type = ValueT;
     using pair_type = std::pair<key_type, value_type>;
@@ -48,51 +46,43 @@ class ordered_map {
         return keys;
     }
 
+    consteval ordered_map_valueset(const KeysetT &keyset) noexcept
+        : keyset(keyset) {}
+
     template <typename InputIt>
-    consteval ordered_map(InputIt first, InputIt last,
-                          const Compare &comp = Compare{}) noexcept
-        : keyset(extract_keys(first, last), comp) {
+    consteval ordered_map_valueset(const KeysetT &keyset, InputIt first, InputIt last) noexcept
+        : keyset(keyset) {
         /* Copy over data if iterator is KVP */
-        if constexpr (requires { (*first).second; }) {
-            std::for_each(first, last, [this](const auto &kvp) {
-                auto idx = keyset.find(kvp.first);
-                values[idx] = kvp.second;
-            });
-        }
+        std::for_each(first, last, [&](const auto &kvp) {
+            auto idx = keyset.find(kvp.first);
+            values[idx] = kvp.second;
+        });
     }
 
-    consteval ordered_map(std::initializer_list<pair_type> kvp_items,
-                          const Compare &comp = Compare{}) noexcept
-        : ordered_map(kvp_items.begin(), kvp_items.end(), comp) {}
-    consteval ordered_map(std::initializer_list<key_type> key_items,
-                          const Compare &comp = Compare{}) noexcept
-        : ordered_map(key_items.begin(), key_items.end(), comp) {}
+    consteval ordered_map_valueset(
+        const KeysetT &keyset,
+        std::initializer_list<pair_type> kvp_items) noexcept
+        : ordered_map_valueset(keyset, kvp_items.begin(), kvp_items.end()) {}
+    consteval ordered_map_valueset(
+        const KeysetT &keyset,
+        const std::array<pair_type, Size> &kvp_items) noexcept
+        : ordered_map_valueset(keyset, kvp_items.begin(), kvp_items.end()) {}
+    consteval ordered_map_valueset(const KeysetT &keyset,
+                                   const pair_type (&kvp_items)[Size]) noexcept
+        : ordered_map_valueset(keyset, std::begin(kvp_items),
+                               std::end(kvp_items)) {}
 
-    consteval ordered_map(const std::array<pair_type, Size> &kvp_items,
-                          const Compare &comp = Compare{}) noexcept
-        : ordered_map(kvp_items.begin(), kvp_items.end(), comp) {}
-    consteval ordered_map(const std::array<key_type, Size> &key_items,
-                          const Compare &comp = Compare{}) noexcept
-        : ordered_map(key_items.begin(), key_items.end(), comp) {}
+    constexpr ordered_map_valueset(const ordered_map_valueset &) noexcept = default;
+    constexpr ordered_map_valueset &operator=(const ordered_map_valueset &) noexcept = default;
 
-    consteval ordered_map(const pair_type (&kvp_items)[Size],
-                          const Compare &comp = Compare{}) noexcept
-        : ordered_map(std::begin(kvp_items), std::end(kvp_items), comp) {}
-    consteval ordered_map(const key_type (&key_items)[Size],
-                          const Compare &comp = Compare{}) noexcept
-        : ordered_map(std::begin(key_items), std::end(key_items), comp) {}
+    constexpr ordered_map_valueset(ordered_map_valueset &&) noexcept = default;
+    constexpr ordered_map_valueset &operator=(ordered_map_valueset &&) noexcept = default;
 
-    constexpr ordered_map(const ordered_map &) noexcept = default;
-    constexpr ordered_map &operator=(const ordered_map &) noexcept = default;
-
-    constexpr ordered_map(ordered_map &&) noexcept = default;
-    constexpr ordered_map &operator=(ordered_map &&) noexcept = default;
-
-    constexpr ValueT *find(const key_type &key) noexcept {
+    constexpr ValueT* find(const key_type &key) noexcept {
         return values.begin() + keyset.find(key);
     }
 
-    constexpr const ValueT *find(const key_type &key) const noexcept {
+    constexpr const ValueT* find(const key_type &key) const noexcept {
         return values.cbegin() + keyset.find(key);
     }
 
@@ -140,13 +130,9 @@ class ordered_map {
         return const_iterator{keyset.begin(), values.cbegin()};
     }
 
-    constexpr iterator end() noexcept {
-        return iterator{keyset.end(), values.end()};
-    }
+    constexpr iterator end() noexcept {return iterator{keyset.end(), values.end()}; }
 
-    constexpr const_iterator end() const noexcept {
-        return const_iterator{keyset.end(), values.cend()};
-    }
+    constexpr const_iterator end() const noexcept {return iterator{keyset.end(), values.cend()}; }
 
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 
@@ -164,42 +150,51 @@ class ordered_map {
 };
 
 template <typename T, typename U, std::size_t N>
-static consteval auto make_ordered_map(std::pair<T, U> const (&items)[N]) {
-    return ordered_map<T, U, N>{items};
+static consteval auto make_ordered_map_valueset(const ordered_map_keyset<T, N> &keyset) {
+    return ordered_map_valueset<T, U, N>{keyset};
+}
+
+template <typename T, typename U, std::size_t N>
+static consteval auto make_ordered_map_valueset(std::pair<T, U> const (&items)[N]) {
+    return ordered_map_valueset<T, U, N>{items};
 }
 
 template <typename T, typename U, std::size_t N>
 static consteval auto
-make_ordered_map(std::array<std::pair<T, U>, N> const &items) {
-    return ordered_map<T, U, N>{items};
+make_ordered_map_valueset(std::array<std::pair<T, U>, N> const &items) {
+    return ordered_map_valueset<T, U, N>{items};
 }
 
 template <typename T, typename U, typename Compare, std::size_t N>
-static consteval auto make_ordered_map(std::pair<T, U> const (&items)[N],
+static consteval auto make_ordered_map_valueset(std::pair<T, U> const (&items)[N],
                                        Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, detail::underlying_type<T>, Compare>{items,
+    return ordered_map_valueset<T, U, N, detail::underlying_type<T>, Compare>{items,
                                                                      compare};
 }
 
 template <typename T, typename U, typename Compare, std::size_t N>
 static consteval auto
-make_ordered_map(std::array<std::pair<T, U>, N> const &items,
+make_ordered_map_valueset(std::array<std::pair<T, U>, N> const &items,
                  Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, detail::underlying_type<T>, Compare>{items,
+    return ordered_map_valueset<T, U, N, detail::underlying_type<T>, Compare>{items,
                                                                      compare};
 }
 
 template <typename T, typename U,
           typename OverrideT = detail::underlying_type<T>, typename Compare,
           std::size_t N>
-static consteval auto make_ordered_map(std::pair<T, U> const (&items)[N],
+static consteval auto make_ordered_map_valueset(std::pair<T, U> const (&items)[N],
                                        Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, Compare>{items, compare};
+    return ordered_map_valueset<T, U, N, Compare>{items, compare};
 }
 
-template <typename T, typename U, typename OverrideT = detail::underlying_type<T>, typename Compare, size_t N>
-static consteval auto make_ordered_map(std::array<std::pair<T, U>, N> const &items, Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, Compare>{items, compare};
+template <typename T, typename U,
+          typename OverrideT = detail::underlying_type<T>, typename Compare,
+          std::size_t N>
+static consteval auto
+make_ordered_map_valueset(std::array<std::pair<T, U>, N> const &items,
+                 Compare const &compare = Compare{}) {
+    return ordered_map_valueset<T, U, N, Compare>{items, compare};
 }
 
-}; // namespace heurohash
+};
