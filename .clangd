@@ -6,8 +6,6 @@ CompileFlags:
 Index:
   Background: Build
   StandardLibrary: Yes
-  External:
-    File: /tmp/clangd-external-indices
 
 Diagnostics:
   UnusedIncludes: Strict

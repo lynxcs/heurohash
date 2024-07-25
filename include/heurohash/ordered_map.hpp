@@ -157,8 +157,15 @@ class ordered_map_iterator {
     using iterator_category = std::random_access_iterator_tag;
     using difference_type   = std::ptrdiff_t;
     using value_type        = std::pair<RetKeyT, ValueT&>;
-    using pointer           = value_type;
     using reference         = value_type;
+
+    /* Inspiration for arrow proxy taken from:
+     * https://github.com/WG21-SG14/SG14/blob/master/SG14/flat_map.h */
+    struct arrow_proxy {
+        reference *operator->() { return std::addressof(data_); }
+        reference data_;
+    };
+    using pointer           = arrow_proxy;
 
     constexpr ordered_map_iterator(const KeyStorT *key_ptr,
                                    ValueT *value_ptr) noexcept
@@ -257,6 +264,14 @@ class ordered_map_iterator {
 
     constexpr reference operator*() const noexcept {
         return {do_cast(key_ptr), *value_ptr};
+    }
+
+    constexpr pointer operator->() noexcept {
+        return arrow_proxy{do_cast(key_ptr), *value_ptr};
+    }
+
+    constexpr pointer operator->() const noexcept {
+        return arrow_proxy{do_cast(key_ptr), *value_ptr};
     }
 
     constexpr reference operator[](difference_type n) const noexcept {
@@ -695,12 +710,8 @@ static consteval auto make_ordered_map(std::pair<T, U> const (&items)[N],
     return ordered_map<T, U, N, Compare>{items, compare};
 }
 
-template <typename T, typename U,
-          typename OverrideT = detail::underlying_type<T>, typename Compare,
-          std::size_t N>
-static consteval auto
-make_ordered_map(std::array<std::pair<T, U>, N> const &items,
-                 Compare const &compare = Compare{}) {
+template <typename T, typename U, typename OverrideT = detail::underlying_type<T>, typename Compare, size_t N>
+static consteval auto make_ordered_map(std::array<std::pair<T, U>, N> const &items, Compare const &compare = Compare{}) {
     return ordered_map<T, U, N, Compare>{items, compare};
 }
 
