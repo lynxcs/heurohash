@@ -37,13 +37,13 @@ class ordered_map {
     static constexpr std::array<KeyT, Size> extract_keys(InputIt first,
                                                          InputIt last) {
         std::array<KeyT, Size> keys{};
-        std::transform(first, last, keys.begin(), [](const auto &kvp) {
-            if constexpr (requires { (*first).second; }) {
+        if constexpr (requires { (*first).second; }) {
+            std::transform(first, last, keys.begin(), [](const auto &kvp) {
                 return kvp.first;
-            } else {
-                return kvp;
-            }
-        });
+            });
+        } else {
+            std::copy(first, last, keys.begin());
+        }
         return keys;
     }
 

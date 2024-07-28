@@ -51,7 +51,6 @@ class ordered_map_valueset {
     template <typename InputIt>
     consteval ordered_map_valueset(const KeysetT &keyset, InputIt first, InputIt last) noexcept
         : keyset(keyset) {
-        /* Copy over data if iterator is KVP */
         std::for_each(first, last, [&](const auto &kvp) {
             auto idx = keyset.find(kvp.first);
             values[idx] = kvp.second;

@@ -232,21 +232,18 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
     }
 
   private:
-    static constexpr auto check_prereqs(const auto &container) {
-        constexpr_assert(container.size() == Size, "Invalid size");
+    template <typename InputIt>
+    static constexpr auto check_prereqs(InputIt begin, InputIt end) {
+        constexpr_assert(std::distance(begin, end) == Size, "Invalid size");
         std::array<KeyValT, Size> prereq_arr{};
-        constexpr auto extract_value = [](auto val) constexpr -> KeyValT {
-            if constexpr (requires { val.first; }) {
-                static_assert(std::is_same_v<decltype(val.first), KeyT>);
-                return static_cast<KeyValT>(val.first);
-            } else {
-                static_assert(std::is_same_v<decltype(val), KeyT>);
-                return static_cast<KeyValT>(val);
-            }
-        };
 
-        std::transform(container.begin(), container.end(), prereq_arr.begin(),
-                       extract_value);
+        if constexpr (requires { (*begin).second; }) {
+            std::transform(
+                begin, end, prereq_arr.begin(),
+                [](auto val) { return static_cast<KeyValT>(val.first); });
+        } else {
+            std::copy(begin, end, prereq_arr.begin());
+        }
         std::sort(prereq_arr.begin(), prereq_arr.end());
 
         auto adjacent_val =
