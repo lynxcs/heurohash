@@ -9,14 +9,10 @@
 
 namespace heurohash {
 template <typename KeyT, size_t Size,
-          typename KeyStorT = detail::underlying_type<KeyT>,
-          typename Compare = std::less<KeyStorT>>
+          typename Compare = std::less<KeyT>>
 class ordered_map_keyset {
-    /* KeyStorageOverride allows to 'override' the storage with a smaller size.
-     * Values are checked, and if any of passed Keys of KeyT don't fit into
-     * KeyStorageOverride type - compile error */
     using KeyUnderlyingT = detail::underlying_type<KeyT>;
-    using KeyValT = std::remove_cv_t<KeyStorT>;
+    using KeyValT = std::remove_cv_t<KeyT>;
     using KeyStorageT = std::array<KeyValT, Size>;
 
     KeyStorageT keys{};
@@ -45,9 +41,7 @@ class ordered_map_keyset {
         : compare(comp) {
         constexpr_assert(std::distance(first, last) == Size,
                          "Passed array size doesn't match");
-        std::transform(first, last, keys.begin(), [](auto key) {
-            return static_cast<const KeyValT>(key);
-        });
+        std::copy(first, last, keys.begin());
         sort_keys();
     }
 
@@ -109,13 +103,8 @@ class ordered_map_keyset {
     }
 
     constexpr size_t find_impl(const KeyT &key) const noexcept {
-        if constexpr (!std::is_same_v<KeyValT, detail::underlying_type<KeyT>>) {
-            if (!std::in_range<KeyValT>(static_cast<KeyUnderlyingT>(key))) {
-                return Size;
-            }
-        }
-        return detail::ordered_find_impl<KeyValT, Compare>(
-            keys.data(), keys.size(), static_cast<KeyValT>(key), compare);
+        return detail::ordered_find_impl_cast(keys.data(), keys.size(), key,
+                                              compare);
     }
 };
 
@@ -132,29 +121,15 @@ static consteval auto make_ordered_keyset(std::array<T, N> const &items) {
 template <typename T, typename Compare, std::size_t N>
 static consteval auto make_ordered_keyset(T const (&items)[N],
                                           Compare const &compare = Compare{}) {
-    return ordered_map_keyset<T, N, detail::underlying_type<T>, Compare>{
+    return ordered_map_keyset<T, N, Compare>{
         items, compare};
 }
 
 template <typename T, typename Compare, std::size_t N>
 static consteval auto make_ordered_keyset(std::array<T, N> const &items,
                                           Compare const &compare = Compare{}) {
-    return ordered_map_keyset<T, N, detail::underlying_type<T>, Compare>{
+    return ordered_map_keyset<T, N, Compare>{
         items, compare};
-}
-
-template <typename T, typename OverrideT = detail::underlying_type<T>,
-          typename Compare, std::size_t N>
-static consteval auto make_ordered_keyset(T const (&items)[N],
-                                          Compare const &compare = Compare{}) {
-    return ordered_map_keyset<T, N, Compare>{items, compare};
-}
-
-template <typename T, typename OverrideT = detail::underlying_type<T>,
-          typename Compare, std::size_t N>
-static consteval auto make_ordered_keyset(std::array<T, N> const &items,
-                                          Compare const &compare = Compare{}) {
-    return ordered_map_keyset<T, N, Compare>{items, compare};
 }
 
 };

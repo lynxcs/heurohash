@@ -13,11 +13,10 @@
 namespace heurohash {
 
 template <typename KeyT, typename ValueT, size_t Size,
-          typename KeyStorT = detail::underlying_type<KeyT>,
-          typename Compare = std::less<KeyStorT>>
+          typename Compare = std::less<KeyT>>
 class ordered_map {
     using StorageT = std::array<ValueT, Size>;
-    ordered_map_keyset<KeyT, Size, KeyStorT, Compare> keyset;
+    ordered_map_keyset<KeyT, Size, Compare> keyset;
     StorageT values{};
 
   public:
@@ -151,14 +150,14 @@ class ordered_map {
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 
     constexpr
-    operator ordered_map_span<KeyT, ValueT, KeyStorT, Compare>() noexcept {
-        return ordered_map_span<KeyT, ValueT, KeyStorT, Compare>(
+    operator ordered_map_span<KeyT, ValueT, Compare>() noexcept {
+        return ordered_map_span<KeyT, ValueT, Compare>(
             keyset.begin(), values.data(), Size, keyset.key_comp());
     }
 
-    constexpr operator ordered_map_span<KeyT, const ValueT, KeyStorT, Compare>()
+    constexpr operator ordered_map_span<KeyT, const ValueT, Compare>()
         const noexcept {
-        return ordered_map_span<KeyT, const ValueT, KeyStorT, Compare>(
+        return ordered_map_span<KeyT, const ValueT, Compare>(
             keyset.begin(), values.data(), Size, keyset.key_comp());
     }
 };
@@ -177,28 +176,13 @@ make_ordered_map(std::array<std::pair<T, U>, N> const &items) {
 template <typename T, typename U, typename Compare, std::size_t N>
 static consteval auto make_ordered_map(std::pair<T, U> const (&items)[N],
                                        Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, detail::underlying_type<T>, Compare>{items,
-                                                                     compare};
+    return ordered_map<T, U, N, Compare>{items, compare};
 }
 
 template <typename T, typename U, typename Compare, std::size_t N>
 static consteval auto
 make_ordered_map(std::array<std::pair<T, U>, N> const &items,
                  Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, detail::underlying_type<T>, Compare>{items,
-                                                                     compare};
-}
-
-template <typename T, typename U,
-          typename OverrideT = detail::underlying_type<T>, typename Compare,
-          std::size_t N>
-static consteval auto make_ordered_map(std::pair<T, U> const (&items)[N],
-                                       Compare const &compare = Compare{}) {
-    return ordered_map<T, U, N, Compare>{items, compare};
-}
-
-template <typename T, typename U, typename OverrideT = detail::underlying_type<T>, typename Compare, size_t N>
-static consteval auto make_ordered_map(std::array<std::pair<T, U>, N> const &items, Compare const &compare = Compare{}) {
     return ordered_map<T, U, N, Compare>{items, compare};
 }
 

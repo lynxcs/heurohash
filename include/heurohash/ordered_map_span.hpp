@@ -9,20 +9,16 @@
 namespace heurohash {
 
 /* FWD declare ordered_map & ordered_map_valueset for span friend */
-template <typename KeyT, typename ValueT, size_t Size, typename KeyStorT,
-          typename Compare>
+template <typename KeyT, typename ValueT, size_t Size, typename Compare>
 class ordered_map;
 
-template <typename KeyT, typename ValueT, size_t Size, typename KeyStorT,
-          typename Compare>
+template <typename KeyT, typename ValueT, size_t Size, typename Compare>
 class ordered_map_valueset;
 
 /* Span of linear map (aka desized, to allow better 'anonymous' interfaces) */
-template <typename KeyT, typename ValueT,
-          typename KeyStorT = detail::underlying_type<KeyT>,
-          typename Compare = std::less<KeyStorT>>
+template <typename KeyT, typename ValueT, typename Compare = std::less<KeyT>>
 class ordered_map_span {
-    const KeyStorT *key_storage;
+    const KeyT *key_storage;
     ValueT *value_storage;
     size_t stor_size;
     [[no_unique_address]] Compare compare;
@@ -42,16 +38,14 @@ class ordered_map_span {
     using const_iterator = ordered_map_iterator<KeyT, const ValueT>;
 
   protected:
-    template <typename Key, typename Value, size_t Size, typename KeyStor,
-              typename Comp>
+    template <typename Key, typename Value, size_t Size, typename Comp>
     friend class ordered_map;
 
-    template <typename Key, typename Value, size_t Size, typename KeyStor,
-              typename Comp>
+    template <typename Key, typename Value, size_t Size, typename Comp>
     friend class ordered_map_valueset;
 
     explicit constexpr ordered_map_span(
-        const KeyStorT *keys, ValueT *values, size_t size,
+        const KeyT *keys, ValueT *values, size_t size,
         const Compare &comp = Compare{}) noexcept
         : key_storage{keys}, value_storage{values}, stor_size(size),
           compare(comp) {}
@@ -64,9 +58,9 @@ class ordered_map_span {
     constexpr ordered_map_span &
     operator=(ordered_map_span &&) noexcept = default;
 
-    constexpr operator ordered_map_span<KeyT, const ValueT, KeyStorT, Compare>()
+    constexpr operator ordered_map_span<KeyT, const ValueT, Compare>()
         const noexcept {
-        return ordered_map_span<KeyT, const ValueT, KeyStorT, Compare>(
+        return ordered_map_span<KeyT, const ValueT, Compare>(
             key_storage, value_storage, stor_size, compare);
     }
 
@@ -111,8 +105,8 @@ class ordered_map_span {
 
   private:
     constexpr size_t find_impl(const KeyT &key) const noexcept {
-        return detail::ordered_find_impl<KeyStorT, Compare>(
-            key_storage, stor_size, static_cast<KeyStorT>(key), compare);
+        return detail::ordered_find_impl_cast(key_storage, stor_size, key,
+                                              compare);
     }
 };
 }; // namespace heurohash

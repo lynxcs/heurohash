@@ -6,20 +6,13 @@
 namespace heurohash {
 template <typename KeyT, typename ValueT>
 class ordered_map_iterator {
-    using KeyStorT = detail::underlying_type<KeyT>;
-    const KeyStorT *key_ptr;
+    const KeyT *key_ptr;
     ValueT *value_ptr;
-
-    using RetKeyT = std::conditional_t<std::is_same_v<KeyT, KeyStorT>, const KeyT&, const KeyT>;
-
-    constexpr RetKeyT do_cast(const KeyStorT *x) const noexcept {
-        return static_cast<RetKeyT>(*x);
-    }
 
   public:
     using iterator_category = std::random_access_iterator_tag;
     using difference_type   = std::ptrdiff_t;
-    using value_type        = std::pair<RetKeyT, ValueT&>;
+    using value_type        = std::pair<const KeyT&, ValueT&>;
     using reference         = value_type;
 
     /* Inspiration for arrow proxy taken from:
@@ -30,7 +23,7 @@ class ordered_map_iterator {
     };
     using pointer           = arrow_proxy;
 
-    constexpr ordered_map_iterator(const KeyStorT *key_ptr,
+    constexpr ordered_map_iterator(const KeyT *key_ptr,
                                    ValueT *value_ptr) noexcept
         : key_ptr(key_ptr), value_ptr(value_ptr) {}
 
@@ -122,23 +115,23 @@ class ordered_map_iterator {
     }
 
     constexpr reference operator*() noexcept {
-        return {do_cast(key_ptr), *value_ptr};
+        return {*key_ptr, *value_ptr};
     }
 
     constexpr reference operator*() const noexcept {
-        return {do_cast(key_ptr), *value_ptr};
+        return {*key_ptr, *value_ptr};
     }
 
     constexpr pointer operator->() noexcept {
-        return arrow_proxy{{do_cast(key_ptr), *value_ptr}};
+        return arrow_proxy{{*key_ptr, *value_ptr}};
     }
 
     constexpr pointer operator->() const noexcept {
-        return arrow_proxy{{do_cast(key_ptr), *value_ptr}};
+        return arrow_proxy{{*key_ptr, *value_ptr}};
     }
 
     constexpr reference operator[](difference_type n) const noexcept {
-        return {do_cast(key_ptr + n), *(value_ptr + n)};
+        return {*(key_ptr + n), *(value_ptr + n)};
     }
 };
 }; // namespace heurohash
