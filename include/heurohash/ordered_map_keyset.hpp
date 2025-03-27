@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <utility>
@@ -8,8 +9,7 @@
 #include "detail/traits.hpp"
 
 namespace heurohash {
-template <typename KeyT, size_t Size,
-          typename Compare = std::less<KeyT>>
+template <typename KeyT, size_t Size, typename Compare = std::less<KeyT>>
 class ordered_map_keyset {
     using KeyUnderlyingT = detail::underlying_type<KeyT>;
     using KeyValT = std::remove_cv_t<KeyT>;
@@ -121,15 +121,13 @@ static consteval auto make_ordered_keyset(std::array<T, N> const &items) {
 template <typename T, typename Compare, std::size_t N>
 static consteval auto make_ordered_keyset(T const (&items)[N],
                                           Compare const &compare = Compare{}) {
-    return ordered_map_keyset<T, N, Compare>{
-        items, compare};
+    return ordered_map_keyset<T, N, Compare>{items, compare};
 }
 
 template <typename T, typename Compare, std::size_t N>
 static consteval auto make_ordered_keyset(std::array<T, N> const &items,
                                           Compare const &compare = Compare{}) {
-    return ordered_map_keyset<T, N, Compare>{
-        items, compare};
+    return ordered_map_keyset<T, N, Compare>{items, compare};
 }
 
-};
+}; // namespace heurohash

@@ -47,9 +47,9 @@ template <typename KeyT, typename ValueT> class linear_map_span {
     template <typename Key, typename Value, size_t Size>
     friend class linear_map;
 
-    explicit constexpr linear_map_span(std::span<ValueT> data,
+    explicit constexpr linear_map_span(std::span<ValueT> _data,
                                        KeyValT offset) noexcept
-        : data(data), offset_from_zero(offset) {}
+        : data(_data), offset_from_zero(offset) {}
 
   public:
     constexpr linear_map_span(const linear_map_span &) noexcept = default;
@@ -95,6 +95,10 @@ template <typename KeyT, typename ValueT> class linear_map_span {
         std::fill(data.begin(), data.end(), ValueT{});
     }
 
+    constexpr KeyValT get_key_offset() const noexcept {
+        return offset_from_zero;
+    }
+
   private:
     constexpr size_t find_impl(const KeyT &key) const noexcept {
         return detail::linear_find_impl<KeyValT>(static_cast<KeyValT>(key),
@@ -112,7 +116,7 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
     StorageT data{};
     /* Offset type. Used to support ranges which don't start from 0 (e.g.: [-1,
      * 0, 1] or [5, 6, 7] etc.) */
-    KeyValT offset_from_zero;
+    KeyValT offset_from_zero{};
 
   public:
     /* Member types */
@@ -131,7 +135,7 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
 
     template <typename InputIt>
     consteval linear_map(InputIt first, InputIt last) noexcept
-        : offset_from_zero(check_prereqs(std::span(first, last))) {
+        : offset_from_zero(check_prereqs(first, last)) {
         /* Copy over data if iterator is KVP */
         if constexpr (requires { (*first).second; }) {
             std::for_each(first, last, [this](const auto &kvp) {
@@ -223,6 +227,10 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
 
     constexpr void clear() noexcept { data.fill(ValueT{}); }
 
+    constexpr KeyValT get_key_offset() const noexcept {
+        return offset_from_zero;
+    }
+
     constexpr operator linear_map_span<KeyT, ValueT>() noexcept {
         return linear_map_span<KeyT, ValueT>(data, offset_from_zero);
     }
@@ -238,9 +246,9 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
         std::array<KeyValT, Size> prereq_arr{};
 
         if constexpr (requires { (*begin).second; }) {
-            std::transform(
-                begin, end, prereq_arr.begin(),
-                [](auto val) { return static_cast<KeyValT>(val.first); });
+            std::transform(begin, end, prereq_arr.begin(), [](auto val) {
+                return static_cast<KeyValT>(val.first);
+            });
         } else {
             std::copy(begin, end, prereq_arr.begin());
         }
@@ -250,7 +258,8 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
             std::adjacent_find(prereq_arr.cbegin(), prereq_arr.cend());
         constexpr_assert(adjacent_val == prereq_arr.cend(),
                          "Duplicate entries in keys");
-        constexpr_assert(prereq_arr.back() - prereq_arr.front() == Size - 1, "Keys must be contiguous");
+        constexpr_assert(prereq_arr.back() - prereq_arr.front() == Size - 1,
+                         "Keys must be contiguous");
         return prereq_arr.front();
     }
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
+#include <numeric>
 
-#include "detail/traits.hpp"
 #include "detail/branchless_lower_bound.hpp"
+#include "detail/traits.hpp"
 #include "ordered_map_iterator.hpp"
 
 namespace heurohash {
@@ -58,8 +60,8 @@ class ordered_map_span {
     constexpr ordered_map_span &
     operator=(ordered_map_span &&) noexcept = default;
 
-    constexpr operator ordered_map_span<KeyT, const ValueT, Compare>()
-        const noexcept {
+    constexpr
+    operator ordered_map_span<KeyT, const ValueT, Compare>() const noexcept {
         return ordered_map_span<KeyT, const ValueT, Compare>(
             key_storage, value_storage, stor_size, compare);
     }
@@ -93,7 +95,9 @@ class ordered_map_span {
 
     constexpr size_t max_size() const noexcept { return stor_size; }
 
-    constexpr iterator begin() const noexcept { return iterator{key_storage, value_storage}; }
+    constexpr iterator begin() const noexcept {
+        return iterator{key_storage, value_storage};
+    }
 
     constexpr iterator end() const noexcept {
         return iterator{key_storage + stor_size, value_storage + stor_size};
@@ -101,6 +105,16 @@ class ordered_map_span {
 
     constexpr void clear() noexcept {
         std::fill(value_storage, value_storage + stor_size, ValueT{});
+    }
+
+    constexpr ordered_map_span<KeyT, ValueT, Compare>
+    subspan(size_t offset,
+            size_t count = std::numeric_limits<size_t>::max()) const noexcept {
+        /* FIXME: Size validation here */
+        auto new_size = size() - offset;
+        new_size = std::min(count, new_size);
+        return ordered_map_span{key_storage + offset, value_storage + offset,
+                                new_size, compare};
     }
 
   private:

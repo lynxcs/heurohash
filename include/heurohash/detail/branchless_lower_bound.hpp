@@ -1,12 +1,14 @@
 #pragma once
 
+#include "traits.hpp"
 #include <cstddef>
 #include <iterator>
-#include "traits.hpp"
 
 namespace heurohash::detail {
 template <class ForwardIt, class T, typename Func>
-static constexpr ForwardIt branchless_lower_bound(ForwardIt first, ForwardIt last, const T& value, const Func &comp_func) {
+static constexpr ForwardIt
+branchless_lower_bound(ForwardIt first, ForwardIt last, const T &value,
+                       const Func &comp_func) {
     auto length = last - first;
     while (length > 0) {
         auto half = length / 2;
@@ -23,8 +25,8 @@ static constexpr size_t ordered_find_impl(const KeyT *keys, size_t size,
                                           const KeyT &key,
                                           const Func &comp_func) noexcept {
     /* branchless ~3x faster on 5900x */
+    /* on embedded platforms - performance is the same */
     auto it = branchless_lower_bound(keys, keys + size, key, comp_func);
-    // auto it = std::lower_bound(keys, keys + size, key, compare);
     if ((it != (keys + size)) && (static_cast<KeyT>(*it) == key)) {
         return std::distance(keys, it);
     }
@@ -40,7 +42,9 @@ static constexpr size_t ordered_find_impl(const KeyT *keys, size_t size,
  * fold the two different lambdas into the same instanciation (assuming that
  * they are otherwise identical, apart from the 'real' type) */
 template <typename KeyT, typename Compare>
-static constexpr size_t ordered_find_impl_cast(const KeyT *keys, size_t size, const KeyT &key, const Compare &compare) noexcept {
+static constexpr size_t
+ordered_find_impl_cast(const KeyT *keys, size_t size, const KeyT &key,
+                       const Compare &compare) noexcept {
     using KeyUnderlyingT = detail::underlying_type<KeyT>;
     if constexpr (std::is_same_v<KeyT, KeyUnderlyingT>) {
         /* Can just pass comparison since underlying & real type is same */
@@ -65,4 +69,4 @@ static constexpr size_t ordered_find_impl_cast(const KeyT *keys, size_t size, co
             });
     }
 }
-};
+}; // namespace heurohash::detail

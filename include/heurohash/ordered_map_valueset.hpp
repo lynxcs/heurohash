@@ -2,8 +2,8 @@
 
 #include "detail/traits.hpp"
 
-#include "ordered_map_keyset.hpp"
 #include "ordered_map_iterator.hpp"
+#include "ordered_map_keyset.hpp"
 #include "ordered_map_span.hpp"
 
 namespace heurohash {
@@ -49,7 +49,8 @@ class ordered_map_valueset {
         : keyset(keyset) {}
 
     template <typename InputIt>
-    consteval ordered_map_valueset(const KeysetT &keyset, InputIt first, InputIt last) noexcept
+    consteval ordered_map_valueset(const KeysetT &keyset, InputIt first,
+                                   InputIt last) noexcept
         : keyset(keyset) {
         std::for_each(first, last, [&](const auto &kvp) {
             auto idx = keyset.find(kvp.first);
@@ -70,17 +71,20 @@ class ordered_map_valueset {
         : ordered_map_valueset(keyset, std::begin(kvp_items),
                                std::end(kvp_items)) {}
 
-    constexpr ordered_map_valueset(const ordered_map_valueset &) noexcept = default;
-    constexpr ordered_map_valueset &operator=(const ordered_map_valueset &) noexcept = default;
+    constexpr ordered_map_valueset(const ordered_map_valueset &) noexcept =
+        default;
+    constexpr ordered_map_valueset &
+    operator=(const ordered_map_valueset &) noexcept = default;
 
     constexpr ordered_map_valueset(ordered_map_valueset &&) noexcept = default;
-    constexpr ordered_map_valueset &operator=(ordered_map_valueset &&) noexcept = default;
+    constexpr ordered_map_valueset &
+    operator=(ordered_map_valueset &&) noexcept = default;
 
-    constexpr ValueT* find(const key_type &key) noexcept {
+    constexpr ValueT *find(const key_type &key) noexcept {
         return values.begin() + keyset.find(key);
     }
 
-    constexpr const ValueT* find(const key_type &key) const noexcept {
+    constexpr const ValueT *find(const key_type &key) const noexcept {
         return values.cbegin() + keyset.find(key);
     }
 
@@ -128,20 +132,33 @@ class ordered_map_valueset {
         return const_iterator{keyset.begin(), values.cbegin()};
     }
 
-    constexpr iterator end() noexcept {return iterator{keyset.end(), values.end()}; }
+    constexpr iterator end() noexcept {
+        return iterator{keyset.end(), values.end()};
+    }
 
-    constexpr const_iterator end() const noexcept {return iterator{keyset.end(), values.cend()}; }
+    constexpr const_iterator end() const noexcept {
+        return iterator{keyset.end(), values.cend()};
+    }
 
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 
-    constexpr
-    operator ordered_map_span<KeyT, ValueT, Compare>() noexcept {
+    constexpr operator ordered_map_span<KeyT, ValueT, Compare>() noexcept {
         return ordered_map_span<KeyT, ValueT, Compare>(
             keyset.begin(), values.data(), Size, keyset.key_comp());
     }
 
-    constexpr operator ordered_map_span<KeyT, const ValueT, Compare>()
-        const noexcept {
+    constexpr
+    operator ordered_map_span<KeyT, const ValueT, Compare>() const noexcept {
+        return ordered_map_span<KeyT, const ValueT, Compare>(
+            keyset.begin(), values.data(), Size, keyset.key_comp());
+    }
+
+    constexpr auto to_span() noexcept {
+        return ordered_map_span<KeyT, ValueT, Compare>(
+            keyset.begin(), values.data(), Size, keyset.key_comp());
+    }
+
+    constexpr auto to_span() const noexcept {
         return ordered_map_span<KeyT, const ValueT, Compare>(
             keyset.begin(), values.data(), Size, keyset.key_comp());
     }
@@ -151,6 +168,13 @@ template <typename T, typename U, std::size_t N>
 static consteval auto
 make_ordered_map_valueset(const ordered_map_keyset<T, N> &keyset) {
     return ordered_map_valueset<T, U, N>{keyset};
+}
+
+template <typename T, typename U, std::size_t N>
+static consteval auto
+make_ordered_map_valueset(const ordered_map_keyset<T, N> &keyset,
+                          std::array<std::pair<T, U>, N> const &items) {
+    return ordered_map_valueset<T, U, N>{keyset, items};
 }
 
 template <typename T, typename U, std::size_t N>
