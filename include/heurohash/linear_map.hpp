@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <numeric>
 #include <span>
 
 #include "detail/traits.hpp"
@@ -97,6 +98,12 @@ template <typename KeyT, typename ValueT> class linear_map_span {
 
     constexpr KeyValT get_key_offset() const noexcept {
         return offset_from_zero;
+    }
+
+    constexpr linear_map_span<KeyT, ValueT>
+    subspan(size_t offset,
+            size_t count = std::numeric_limits<size_t>::max()) const noexcept {
+        return linear_map_span{data.subspan(offset, count), offset};
     }
 
   private:
@@ -232,10 +239,18 @@ template <typename KeyT, typename ValueT, size_t Size> class linear_map {
     }
 
     constexpr operator linear_map_span<KeyT, ValueT>() noexcept {
-        return linear_map_span<KeyT, ValueT>(data, offset_from_zero);
+        return to_span();
     }
 
     constexpr operator linear_map_span<KeyT, const ValueT>() const noexcept {
+        return to_span();
+    }
+
+    constexpr linear_map_span<KeyT, ValueT> to_span() noexcept {
+        return linear_map_span<KeyT, ValueT>(data, offset_from_zero);
+    }
+
+    constexpr linear_map_span<KeyT, const ValueT> to_span() const noexcept {
         return linear_map_span<KeyT, const ValueT>(data, offset_from_zero);
     }
 

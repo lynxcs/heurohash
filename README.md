@@ -80,16 +80,20 @@ auto example_map_runtime_nonstatic = heurohash::ordered_map<KeyType, int, 3>{{{K
 /* For all variants can also specify only keys (doesn't make much sense as static constexpr though) */
 auto example_map_runtime_no_vals = heurohash::ordered_map<KeyType, int, 3>{{KeyType::A, KeyType::B, KeyType::C}};
 ```
-#### Minimal perfect hash map (W.I.P)
+#### Hash map
+Hash map is based on pseudo_pnext implementation from [compile-time-init-build](https://github.com/intel/compile-time-init-build) library.
+
+Supports span-like interface - though that is not constexpr.
+
+Using hash map requires C++23 features.
+
+FIXME: API example
+
 ### Key/Value split API
-Alongside the standard API, this library also provides a keyset/valueset split for ordered map (and in future - MPH map).
+Alongside the standard API, this library also provides a keyset/valueset split for the ordered and hash maps.
 
 The advantage of the split API, is that it allows to totally minimize the usage of ROM & RAM (useful for embedded) in cases where we want the values to be modifiable (constinit/regular construction).
 
 This can be achieved by having the keyset be stored in ROM via static constexpr, and the valueset in RAM via constinit (or just as local variable). The valueset contains a reference to the keyset.
 
 Note that keyset/valueset pairs are also compatible with their respective span variants.
-
-## Benchmarks
-
-TODO: Compare with std::array (hand-made table), std::map, std::unordered_map

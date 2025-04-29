@@ -6,8 +6,8 @@
 
 #include "detail/traits.hpp"
 
+#include "kvp_ptr_iterator.hpp"
 #include "ordered_map_keyset.hpp"
-#include "ordered_map_iterator.hpp"
 #include "ordered_map_span.hpp"
 
 namespace heurohash {
@@ -30,17 +30,16 @@ class ordered_map {
     using const_reference = const value_type &;
     using pointer = value_type *;
     using const_pointer = const value_type *;
-    using iterator = ordered_map_iterator<KeyT, ValueT>;
-    using const_iterator = ordered_map_iterator<KeyT, const ValueT>;
+    using iterator = kvp_ptr_iterator<KeyT, ValueT>;
+    using const_iterator = kvp_ptr_iterator<KeyT, const ValueT>;
 
     template <typename InputIt>
     static constexpr std::array<KeyT, Size> extract_keys(InputIt first,
                                                          InputIt last) {
         std::array<KeyT, Size> keys{};
         if constexpr (requires { (*first).second; }) {
-            std::transform(first, last, keys.begin(), [](const auto &kvp) {
-                return kvp.first;
-            });
+            std::transform(first, last, keys.begin(),
+                           [](const auto &kvp) { return kvp.first; });
         } else {
             std::copy(first, last, keys.begin());
         }
@@ -149,14 +148,13 @@ class ordered_map {
 
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 
-    constexpr
-    operator ordered_map_span<KeyT, ValueT, Compare>() noexcept {
+    constexpr operator ordered_map_span<KeyT, ValueT, Compare>() noexcept {
         return ordered_map_span<KeyT, ValueT, Compare>(
             keyset.begin(), values.data(), Size, keyset.key_comp());
     }
 
-    constexpr operator ordered_map_span<KeyT, const ValueT, Compare>()
-        const noexcept {
+    constexpr
+    operator ordered_map_span<KeyT, const ValueT, Compare>() const noexcept {
         return ordered_map_span<KeyT, const ValueT, Compare>(
             keyset.begin(), values.data(), Size, keyset.key_comp());
     }

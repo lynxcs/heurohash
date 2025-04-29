@@ -6,7 +6,7 @@
 
 #include "detail/branchless_lower_bound.hpp"
 #include "detail/traits.hpp"
-#include "ordered_map_iterator.hpp"
+#include "kvp_ptr_iterator.hpp"
 
 namespace heurohash {
 
@@ -36,8 +36,8 @@ class ordered_map_span {
     using const_reference = const value_type &;
     using pointer = value_type *;
     using const_pointer = const value_type *;
-    using iterator = ordered_map_iterator<KeyT, ValueT>;
-    using const_iterator = ordered_map_iterator<KeyT, const ValueT>;
+    using iterator = kvp_ptr_iterator<KeyT, ValueT>;
+    using const_iterator = kvp_ptr_iterator<KeyT, const ValueT>;
 
   protected:
     template <typename Key, typename Value, size_t Size, typename Comp>
@@ -86,7 +86,7 @@ class ordered_map_span {
     }
 
     constexpr bool contains(const KeyT &key) const noexcept {
-        return find_impl(key) != end();
+        return find_impl(key) != size();
     }
 
     constexpr bool empty() const noexcept { return stor_size == 0; }

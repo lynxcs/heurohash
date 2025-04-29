@@ -2,7 +2,7 @@
 
 #include "detail/traits.hpp"
 
-#include "ordered_map_iterator.hpp"
+#include "kvp_ptr_iterator.hpp"
 #include "ordered_map_keyset.hpp"
 #include "ordered_map_span.hpp"
 
@@ -28,8 +28,8 @@ class ordered_map_valueset {
     using const_reference = const value_type &;
     using pointer = value_type *;
     using const_pointer = const value_type *;
-    using iterator = ordered_map_iterator<KeyT, ValueT>;
-    using const_iterator = ordered_map_iterator<KeyT, const ValueT>;
+    using iterator = kvp_ptr_iterator<KeyT, ValueT>;
+    using const_iterator = kvp_ptr_iterator<KeyT, const ValueT>;
 
     template <typename InputIt>
     static constexpr std::array<KeyT, Size> extract_keys(InputIt first,
@@ -143,14 +143,12 @@ class ordered_map_valueset {
     constexpr void clear() noexcept { values.fill(ValueT{}); }
 
     constexpr operator ordered_map_span<KeyT, ValueT, Compare>() noexcept {
-        return ordered_map_span<KeyT, ValueT, Compare>(
-            keyset.begin(), values.data(), Size, keyset.key_comp());
+        return to_span();
     }
 
     constexpr
     operator ordered_map_span<KeyT, const ValueT, Compare>() const noexcept {
-        return ordered_map_span<KeyT, const ValueT, Compare>(
-            keyset.begin(), values.data(), Size, keyset.key_comp());
+        return to_span();
     }
 
     constexpr auto to_span() noexcept {

@@ -1,7 +1,7 @@
 Hover:
   ShowAKA: Yes
 CompileFlags:
-  Add: [-std=c++20]
+  Add: [-std=c++23]
   CompilationDatabase: ./compile_commands.json
 Index:
   Background: Build
@@ -11,4 +11,4 @@ Diagnostics:
   UnusedIncludes: Strict
   ClangTidy:
     Add: ['bugprone-*', 'modernize-*', 'performance-*', 'concurrency-*', 'clang-analyzer-*', 'readability-*', 'portability-*']
-    Remove: ['modernize-use-trailing-return-type', 'modernize-use-nodiscard']
+    Remove: ['modernize-use-trailing-return-type', 'modernize-use-nodiscard', 'readability-magic-numbers', 'readability-identifier-length']
