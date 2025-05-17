@@ -99,7 +99,7 @@ hash_map_keyset(detail::pseudo_next_t<KeyT, Size, LutSize, Depth>)
     -> hash_map_keyset<KeyT, Size, LutSize, Depth>;
 
 static consteval auto make_hash_keyset(comp_time auto builder) noexcept {
-    using builder_ret_t = decltype(lookup::detail::get_orig_keys(builder()));
+    // using builder_ret_t = decltype(lookup::detail::get_orig_keys(builder()));
 
     /* FIXME: This forces us back to C++23. Also full struct might be stored in
      * binary?  */

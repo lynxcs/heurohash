@@ -10,7 +10,7 @@
  * The original source has dependency on boost,
  * as well as it only works with a kvp stored approach
  * so it was repurposed to be able to do split keyset/valueset
- * approach.
+ * approach & some other things.
  * Also supports the convenient span-like interface
  */
 
@@ -30,15 +30,6 @@
 #include "comp_time_arg.hpp"
 
 namespace lookup {
-
-/* FIXME: Remove usage of this type */
-// template <typename K, typename V> struct entry {
-//     using key_type = K;
-//     using value_type = V;
-//     key_type key_{};
-//     value_type value_{};
-// };
-// template <typename K, typename V> entry(K, V) -> entry<K, V>;
 
 namespace detail {
 constexpr auto as_raw_integral(auto v) {
@@ -141,7 +132,6 @@ template <typename T> struct pseudo_pext_t {
     T mask;
     T coefficient;
     T final_mask;
-    // std::size_t gap_bits;
     raw_integral_t<T> gap_bits;
 
     constexpr explicit pseudo_pext_t(T mask_arg) : mask{mask_arg} {
@@ -303,22 +293,15 @@ constexpr auto remove_cheapest_bit(detail::raw_integral_t<T> mask,
         std::array<raw_t, S> try_keys =
             with_mask(bitset_to_type<raw_t>(btry_mask), keys);
 
-        // return bitset_to_type<raw_t>(btry_mask);
-
         auto num_dups = count_duplicates(try_keys);
         if (num_dups < min_num_dups) {
             min_num_dups = num_dups;
             cheapest_bit = idx;
         }
     }
-    // for_each(
-    //     [&](auto i) {
-    //     },
-    //     bmask);
 
     bmask.reset(cheapest_bit);
     return bitset_to_type<raw_t>(bmask);
-    // return bmask.template to<raw_t>();
 }
 
 template <typename T, std::size_t S>
@@ -485,9 +468,6 @@ template <std::size_t MaxSearchLen = 4> struct pseudo_pext_lookup {
   public:
     [[nodiscard]] constexpr static auto make(comp_time auto comp_time_builder) {
         constexpr auto input = comp_time_builder();
-        // using key_type = typename decltype(input)::value_type::key_type;
-        // using raw_key_type = detail::raw_integral_t<key_type>;
-        // using value_type = typename decltype(input)::value_type::value_type;
 
         constexpr auto raw_keys = detail::get_raw_keys(input);
         static_assert(detail::keys_are_unique(raw_keys),
@@ -569,30 +549,3 @@ template <std::size_t MaxSearchLen = 4> struct pseudo_pext_lookup {
     }
 };
 } // namespace lookup
-
-static constexpr auto table = lookup::pseudo_pext_lookup<4>::make([]() {
-    return std::array{
-        std::make_pair(static_cast<uint16_t>(1), static_cast<uint16_t>(1))};
-});
-
-static_assert(sizeof(table) == 12);
-static_assert(table.lookup(1) == 0);
-static_assert(table.lookup(2) == 1);
-static_assert(table.lookup(929) == 1);
-
-static constexpr auto table2 = lookup::pseudo_pext_lookup<16>::make([]() {
-    return std::array{
-        std::make_pair(static_cast<uint32_t>(1), static_cast<uint16_t>(1)),
-        std::make_pair(static_cast<uint32_t>(2), static_cast<uint16_t>(1)),
-    };
-});
-
-static_assert(sizeof(table2) == 28);
-
-static constexpr auto table3 = lookup::pseudo_pext_lookup<16>::make([]() {
-    return std::array{static_cast<uint32_t>(1), static_cast<uint32_t>(2)};
-});
-
-static_assert(sizeof(table3) == 28);
-
-// static_assert(table[2] == 0);

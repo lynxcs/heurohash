@@ -26,8 +26,9 @@ static constexpr size_t ordered_find_impl(const KeyT *keys, size_t size,
                                           const Func &comp_func) noexcept {
     /* branchless ~3x faster on 5900x */
     /* on embedded platforms - performance is the same */
-    auto it = branchless_lower_bound(keys, keys + size, key, comp_func);
-    if ((it != (keys + size)) && (static_cast<KeyT>(*it) == key)) {
+    auto end = keys + size;
+    auto it = branchless_lower_bound(keys, end, key, comp_func);
+    if ((it != end) && (*it == key)) {
         return std::distance(keys, it);
     }
     return size;
